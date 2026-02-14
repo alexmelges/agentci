@@ -1,0 +1,52 @@
+version: 1
+defaults:
+  provider: openai
+  model: gpt-4o-mini
+  temperature: 0
+  max_tokens: 500
+
+tests:
+  - name: "greeting response"
+    prompt: "Hello, I need help with my order"
+    assertions:
+      - type: contains
+        value: "help"
+      - type: not_contains
+        value: "I'm just an AI"
+      - type: regex
+        pattern: "(order|assist|help)"
+
+  - name: "refund policy"
+    system: "You are a customer support agent for Acme Corp. Acme's refund policy is 30 days from purchase."
+    prompt: "What's your refund policy?"
+    assertions:
+      - type: contains
+        value: "30 days"
+      - type: max_tokens
+        value: 200
+
+  - name: "tool call check"
+    prompt: "What's the weather in Paris?"
+    tools:
+      - name: get_weather
+        description: "Get weather for a city"
+        parameters:
+          type: object
+          properties:
+            city: { type: string }
+    assertions:
+      - type: tool_called
+        name: get_weather
+      - type: tool_args
+        name: get_weather
+        contains: { city: "Paris" }
+
+  - name: "no hallucination"
+    system: "Only answer from the provided context."
+    context: "Acme Corp was founded in 2010 by Jane Smith."
+    prompt: "When was Acme Corp founded?"
+    assertions:
+      - type: contains
+        value: "2010"
+      - type: not_contains
+        value: "2005"
