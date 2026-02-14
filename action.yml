@@ -1,0 +1,48 @@
+name: "AgentCI"
+description: "Regression testing for AI agents — pytest for prompts"
+author: "Alexandre Melges"
+
+branding:
+  icon: "check-circle"
+  color: "green"
+
+inputs:
+  config:
+    description: "Path to agentci.yaml config file"
+    required: false
+    default: "agentci.yaml"
+  model:
+    description: "Override model for all tests"
+    required: false
+  format:
+    description: "Output format: text, json, markdown"
+    required: false
+    default: "text"
+  verbose:
+    description: "Show full LLM responses"
+    required: false
+    default: "false"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20
+
+    - name: Install AgentCI
+      shell: bash
+      run: npm install -g agentci@0.1.0
+
+    - name: Run AgentCI
+      shell: bash
+      run: |
+        ARGS="--config ${{ inputs.config }} --format ${{ inputs.format }}"
+        if [ -n "${{ inputs.model }}" ]; then
+          ARGS="$ARGS --model ${{ inputs.model }}"
+        fi
+        if [ "${{ inputs.verbose }}" = "true" ]; then
+          ARGS="$ARGS --verbose"
+        fi
+        agentci $ARGS
