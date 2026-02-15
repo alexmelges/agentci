@@ -10,7 +10,7 @@ function makeResponse(
 }
 
 describe("assertion registry", () => {
-  it("has all expected assertion types", () => {
+  it("has all expected assertion types", async () => {
     const types = getAssertionTypes();
     expect(types).toContain("contains");
     expect(types).toContain("not_contains");
@@ -25,8 +25,8 @@ describe("assertion registry", () => {
     expect(types).toContain("json_schema");
   });
 
-  it("returns failure for unknown assertion type", () => {
-    const result = runAssertion(makeResponse("hello"), {
+  it("returns failure for unknown assertion type", async () => {
+    const result = await runAssertion(makeResponse("hello"), {
       type: "nonexistent",
     });
     expect(result.passed).toBe(false);
@@ -35,24 +35,24 @@ describe("assertion registry", () => {
 });
 
 describe("contains", () => {
-  it("passes when response contains value (case-insensitive)", () => {
-    const result = runAssertion(makeResponse("I can help you with that!"), {
+  it("passes when response contains value (case-insensitive)", async () => {
+    const result = await runAssertion(makeResponse("I can help you with that!"), {
       type: "contains",
       value: "help",
     });
     expect(result.passed).toBe(true);
   });
 
-  it("passes case-insensitively", () => {
-    const result = runAssertion(makeResponse("HELLO WORLD"), {
+  it("passes case-insensitively", async () => {
+    const result = await runAssertion(makeResponse("HELLO WORLD"), {
       type: "contains",
       value: "hello",
     });
     expect(result.passed).toBe(true);
   });
 
-  it("fails when value not found", () => {
-    const result = runAssertion(makeResponse("goodbye"), {
+  it("fails when value not found", async () => {
+    const result = await runAssertion(makeResponse("goodbye"), {
       type: "contains",
       value: "hello",
     });
@@ -61,16 +61,16 @@ describe("contains", () => {
 });
 
 describe("not_contains", () => {
-  it("passes when response does not contain value", () => {
-    const result = runAssertion(makeResponse("I can help you!"), {
+  it("passes when response does not contain value", async () => {
+    const result = await runAssertion(makeResponse("I can help you!"), {
       type: "not_contains",
       value: "sorry",
     });
     expect(result.passed).toBe(true);
   });
 
-  it("fails when response contains value", () => {
-    const result = runAssertion(
+  it("fails when response contains value", async () => {
+    const result = await runAssertion(
       makeResponse("I'm just an AI assistant"),
       { type: "not_contains", value: "just an AI" }
     );
@@ -79,16 +79,16 @@ describe("not_contains", () => {
 });
 
 describe("regex", () => {
-  it("passes when response matches pattern", () => {
-    const result = runAssertion(
+  it("passes when response matches pattern", async () => {
+    const result = await runAssertion(
       makeResponse("I can help you with your order"),
       { type: "regex", pattern: "(order|assist|help)" }
     );
     expect(result.passed).toBe(true);
   });
 
-  it("fails when response does not match", () => {
-    const result = runAssertion(makeResponse("goodbye"), {
+  it("fails when response does not match", async () => {
+    const result = await runAssertion(makeResponse("goodbye"), {
       type: "regex",
       pattern: "^hello",
     });
@@ -97,24 +97,24 @@ describe("regex", () => {
 });
 
 describe("starts_with", () => {
-  it("passes when response starts with value", () => {
-    const result = runAssertion(makeResponse("Hello, how can I help?"), {
+  it("passes when response starts with value", async () => {
+    const result = await runAssertion(makeResponse("Hello, how can I help?"), {
       type: "starts_with",
       value: "Hello",
     });
     expect(result.passed).toBe(true);
   });
 
-  it("handles leading whitespace", () => {
-    const result = runAssertion(makeResponse("  Hello world"), {
+  it("handles leading whitespace", async () => {
+    const result = await runAssertion(makeResponse("  Hello world"), {
       type: "starts_with",
       value: "Hello",
     });
     expect(result.passed).toBe(true);
   });
 
-  it("fails when response doesn't start with value", () => {
-    const result = runAssertion(makeResponse("Goodbye"), {
+  it("fails when response doesn't start with value", async () => {
+    const result = await runAssertion(makeResponse("Goodbye"), {
       type: "starts_with",
       value: "Hello",
     });
@@ -123,16 +123,16 @@ describe("starts_with", () => {
 });
 
 describe("ends_with", () => {
-  it("passes when response ends with value", () => {
-    const result = runAssertion(makeResponse("Let me help you."), {
+  it("passes when response ends with value", async () => {
+    const result = await runAssertion(makeResponse("Let me help you."), {
       type: "ends_with",
       value: "help you.",
     });
     expect(result.passed).toBe(true);
   });
 
-  it("fails when response doesn't end with value", () => {
-    const result = runAssertion(makeResponse("Hello world"), {
+  it("fails when response doesn't end with value", async () => {
+    const result = await runAssertion(makeResponse("Hello world"), {
       type: "ends_with",
       value: "goodbye",
     });
@@ -141,17 +141,17 @@ describe("ends_with", () => {
 });
 
 describe("max_tokens", () => {
-  it("passes when response is under token limit", () => {
-    const result = runAssertion(makeResponse("short"), {
+  it("passes when response is under token limit", async () => {
+    const result = await runAssertion(makeResponse("short"), {
       type: "max_tokens",
       value: 100,
     });
     expect(result.passed).toBe(true);
   });
 
-  it("fails when response exceeds token limit", () => {
+  it("fails when response exceeds token limit", async () => {
     const longText = Array(200).fill("word").join(" ");
-    const result = runAssertion(makeResponse(longText), {
+    const result = await runAssertion(makeResponse(longText), {
       type: "max_tokens",
       value: 10,
     });
@@ -160,17 +160,17 @@ describe("max_tokens", () => {
 });
 
 describe("min_tokens", () => {
-  it("passes when response meets minimum", () => {
+  it("passes when response meets minimum", async () => {
     const text = Array(50).fill("word").join(" ");
-    const result = runAssertion(makeResponse(text), {
+    const result = await runAssertion(makeResponse(text), {
       type: "min_tokens",
       value: 10,
     });
     expect(result.passed).toBe(true);
   });
 
-  it("fails when response is too short", () => {
-    const result = runAssertion(makeResponse("hi"), {
+  it("fails when response is too short", async () => {
+    const result = await runAssertion(makeResponse("hi"), {
       type: "min_tokens",
       value: 100,
     });
@@ -179,8 +179,8 @@ describe("min_tokens", () => {
 });
 
 describe("tool_called", () => {
-  it("passes when tool was called", () => {
-    const result = runAssertion(
+  it("passes when tool was called", async () => {
+    const result = await runAssertion(
       makeResponse("", [
         { name: "get_weather", arguments: { city: "Paris" } },
       ]),
@@ -189,8 +189,8 @@ describe("tool_called", () => {
     expect(result.passed).toBe(true);
   });
 
-  it("fails when tool was not called", () => {
-    const result = runAssertion(makeResponse("The weather is nice"), {
+  it("fails when tool was not called", async () => {
+    const result = await runAssertion(makeResponse("The weather is nice"), {
       type: "tool_called",
       name: "get_weather",
     });
@@ -198,8 +198,8 @@ describe("tool_called", () => {
     expect(result.message).toContain("no tool calls made");
   });
 
-  it("fails when different tool was called", () => {
-    const result = runAssertion(
+  it("fails when different tool was called", async () => {
+    const result = await runAssertion(
       makeResponse("", [
         { name: "search", arguments: {} },
       ]),
@@ -211,8 +211,8 @@ describe("tool_called", () => {
 });
 
 describe("tool_args", () => {
-  it("passes when tool args match", () => {
-    const result = runAssertion(
+  it("passes when tool args match", async () => {
+    const result = await runAssertion(
       makeResponse("", [
         { name: "get_weather", arguments: { city: "Paris", units: "celsius" } },
       ]),
@@ -221,8 +221,8 @@ describe("tool_args", () => {
     expect(result.passed).toBe(true);
   });
 
-  it("fails when tool args don't match", () => {
-    const result = runAssertion(
+  it("fails when tool args don't match", async () => {
+    const result = await runAssertion(
       makeResponse("", [
         { name: "get_weather", arguments: { city: "London" } },
       ]),
@@ -232,8 +232,8 @@ describe("tool_args", () => {
     expect(result.message).toContain("mismatch");
   });
 
-  it("fails when tool not called", () => {
-    const result = runAssertion(makeResponse("hello"), {
+  it("fails when tool not called", async () => {
+    const result = await runAssertion(makeResponse("hello"), {
       type: "tool_args",
       name: "get_weather",
       contains: { city: "Paris" },
@@ -243,16 +243,16 @@ describe("tool_args", () => {
 });
 
 describe("json_valid", () => {
-  it("passes for valid JSON", () => {
-    const result = runAssertion(
+  it("passes for valid JSON", async () => {
+    const result = await runAssertion(
       makeResponse('{"name": "test", "value": 42}'),
       { type: "json_valid" }
     );
     expect(result.passed).toBe(true);
   });
 
-  it("fails for invalid JSON", () => {
-    const result = runAssertion(makeResponse("not json at all"), {
+  it("fails for invalid JSON", async () => {
+    const result = await runAssertion(makeResponse("not json at all"), {
       type: "json_valid",
     });
     expect(result.passed).toBe(false);
@@ -260,8 +260,8 @@ describe("json_valid", () => {
 });
 
 describe("json_schema", () => {
-  it("passes when response matches schema", () => {
-    const result = runAssertion(
+  it("passes when response matches schema", async () => {
+    const result = await runAssertion(
       makeResponse('{"name": "test", "age": 25}'),
       {
         type: "json_schema",
@@ -278,8 +278,8 @@ describe("json_schema", () => {
     expect(result.passed).toBe(true);
   });
 
-  it("fails when response doesn't match schema", () => {
-    const result = runAssertion(makeResponse('{"name": 123}'), {
+  it("fails when response doesn't match schema", async () => {
+    const result = await runAssertion(makeResponse('{"name": 123}'), {
       type: "json_schema",
       schema: {
         type: "object",
@@ -293,8 +293,8 @@ describe("json_schema", () => {
     expect(result.message).toContain("schema validation failed");
   });
 
-  it("fails for invalid JSON", () => {
-    const result = runAssertion(makeResponse("not json"), {
+  it("fails for invalid JSON", async () => {
+    const result = await runAssertion(makeResponse("not json"), {
       type: "json_schema",
       schema: { type: "object" },
     });

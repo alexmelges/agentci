@@ -9,6 +9,11 @@ import {
 import { assertMaxTokens, assertMinTokens } from "./tokens.js";
 import { assertToolCalled, assertToolArgs } from "./tools.js";
 import { assertJsonValid, assertJsonSchema } from "./json.js";
+import {
+  assertLlmJudge,
+  assertSemanticSimilarity,
+  assertSentiment,
+} from "./judge.js";
 
 export interface Assertion {
   type: string;
@@ -24,12 +29,20 @@ export interface AssertionResult {
   message: string;
 }
 
-type AssertionFn = (
+type SyncAssertionFn = (
   response: ProviderResponse,
   assertion: Assertion
 ) => AssertionResult;
 
+type AsyncAssertionFn = (
+  response: ProviderResponse,
+  assertion: Assertion
+) => Promise<AssertionResult>;
+
+type AssertionFn = SyncAssertionFn | AsyncAssertionFn;
+
 const registry: Record<string, AssertionFn> = {
+  // Sync (deterministic)
   contains: assertContains,
   not_contains: assertNotContains,
   regex: assertRegex,
@@ -41,12 +54,16 @@ const registry: Record<string, AssertionFn> = {
   tool_args: assertToolArgs,
   json_valid: assertJsonValid,
   json_schema: assertJsonSchema,
+  // Async (LLM-as-judge)
+  llm_judge: assertLlmJudge,
+  semantic_similarity: assertSemanticSimilarity,
+  sentiment: assertSentiment,
 };
 
-export function runAssertion(
+export async function runAssertion(
   response: ProviderResponse,
   assertion: Assertion
-): AssertionResult {
+): Promise<AssertionResult> {
   const fn = registry[assertion.type];
   if (!fn) {
     return {

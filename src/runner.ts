@@ -74,12 +74,11 @@ export async function runTest(
     const response = await provider.chat(request);
     const duration = Date.now() - start;
 
-    const assertionResults: TestAssertionResult[] = test.assertions.map(
-      (assertion) => ({
-        assertion,
-        result: runAssertion(response, assertion),
-      })
-    );
+    const assertionResults: TestAssertionResult[] = [];
+    for (const assertion of test.assertions) {
+      const result = await runAssertion(response, assertion);
+      assertionResults.push({ assertion, result });
+    }
 
     const allPassed = assertionResults.every((ar) => ar.result.passed);
 

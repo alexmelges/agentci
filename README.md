@@ -91,7 +91,7 @@ tests:
 
 ## Assertion Types
 
-AgentCI ships with 11 assertion types:
+AgentCI ships with 14 assertion types — 11 deterministic + 3 LLM-as-judge:
 
 ### Text Assertions
 
@@ -172,6 +172,56 @@ assertions:
       properties:
         name: { type: string }
         age: { type: number }
+```
+
+### LLM-as-Judge Assertions ⚡ NEW
+
+Use an LLM to evaluate responses when deterministic assertions aren't enough. Requires `OPENAI_API_KEY` (uses `gpt-4o-mini` by default).
+
+| Type | Fields | Description |
+|------|--------|-------------|
+| `llm_judge` | `value` | Free-form criterion — LLM evaluates if response meets it |
+| `semantic_similarity` | `value` | Response conveys same meaning as reference text |
+| `sentiment` | `value` | Response matches expected tone (professional, friendly, etc.) |
+
+```yaml
+assertions:
+  # Free-form evaluation
+  - type: llm_judge
+    value: "Response should be helpful, concise, and not hallucinate facts"
+
+  # Semantic matching (ignores phrasing differences)
+  - type: semantic_similarity
+    value: "The capital of France is Paris"
+
+  # Tone/sentiment check
+  - type: sentiment
+    value: "professional"
+```
+
+**Configuration:**
+- Judge model: set `AGENTCI_JUDGE_MODEL` env var (default: `gpt-4o-mini`)
+- Judge responses include reasoning for debuggability
+- Each judge assertion makes one additional API call
+
+**Example — testing a support bot's tone and accuracy:**
+
+```yaml
+tests:
+  - name: "refund request — empathetic and accurate"
+    system: "You are a customer support agent for an e-commerce store."
+    prompt: "I want a refund for my order that arrived broken"
+    assertions:
+      # Deterministic checks
+      - type: contains
+        value: "refund"
+      - type: not_contains
+        value: "I'm just an AI"
+      # LLM-as-judge checks
+      - type: sentiment
+        value: "empathetic and professional"
+      - type: llm_judge
+        value: "Response acknowledges the broken item, offers a clear refund process, and doesn't blame the customer"
 ```
 
 ## Provider Configuration
