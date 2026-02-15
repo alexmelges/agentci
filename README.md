@@ -11,6 +11,17 @@ AgentCI runs behavioral tests against your AI agents and prompts on every commit
 ## Quick Start
 
 ```bash
+# Try it instantly — no API keys needed
+npx agentci --demo
+
+# Or test your own agent
+npx agentci init       # generates agentci.yaml
+npx agentci            # runs the tests
+```
+
+### Full Setup
+
+```bash
 # Install
 npm install -D agentci
 

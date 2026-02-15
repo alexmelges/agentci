@@ -40,7 +40,7 @@ export function reportText(
 
     if (options?.verbose && test.response) {
       lines.push(chalk.dim(`     Response: ${test.response.content.slice(0, 200)}${test.response.content.length > 200 ? "..." : ""}`));
-      if (test.response.tool_calls.length > 0) {
+      if (test.response.tool_calls && test.response.tool_calls.length > 0) {
         lines.push(
           chalk.dim(
             `     Tool calls: ${JSON.stringify(test.response.tool_calls)}`

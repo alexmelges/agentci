@@ -51,7 +51,7 @@ function getProvider(
 export async function runTest(
   test: TestCase,
   config: AgentCIConfig,
-  options?: { verbose?: boolean }
+  options?: { verbose?: boolean; providerOverride?: Provider }
 ): Promise<TestResult> {
   const start = Date.now();
 
@@ -60,7 +60,7 @@ export async function runTest(
   const baseUrl = test.base_url || config.defaults.base_url;
 
   try {
-    const provider = getProvider(providerName, baseUrl);
+    const provider = options?.providerOverride ?? getProvider(providerName, baseUrl);
 
     const request: ProviderRequest = {
       model,
@@ -103,7 +103,7 @@ export async function runTest(
 
 export async function runAllTests(
   config: AgentCIConfig,
-  options?: { verbose?: boolean }
+  options?: { verbose?: boolean; providerOverride?: Provider }
 ): Promise<RunResult> {
   const start = Date.now();
   const results: TestResult[] = [];
