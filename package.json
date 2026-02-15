@@ -1,5 +1,5 @@
 {
-  "name": "agentci",
+  "name": "@alexmelges/agentci",
   "version": "0.2.2",
   "description": "Regression testing for AI agent workflows — pytest for prompts",
   "type": "module",

@@ -12,11 +12,11 @@ AgentCI runs behavioral tests against your AI agents and prompts on every commit
 
 ```bash
 # Try it instantly — no API keys needed
-npx agentci --demo
+npx @alexmelges/agentci --demo
 
 # Or test your own agent
-npx agentci init       # generates agentci.yaml
-npx agentci            # runs the tests
+npx @alexmelges/agentci init       # generates agentci.yaml
+npx @alexmelges/agentci            # runs the tests
 ```
 
 ### Full Setup
@@ -45,7 +45,7 @@ tests:
 EOF
 
 # Run tests (requires OPENAI_API_KEY env var)
-npx agentci
+npx @alexmelges/agentci
 ```
 
 Output:
@@ -297,25 +297,25 @@ Options:
 
 ```bash
 # Run with default config (agentci.yaml)
-npx agentci
+npx @alexmelges/agentci
 
 # Use a specific config file
-npx agentci --config tests/support-agent.yaml
+npx @alexmelges/agentci --config tests/support-agent.yaml
 
 # Override the model
-npx agentci --model gpt-4o
+npx @alexmelges/agentci --model gpt-4o
 
 # Validate YAML without making API calls
-npx agentci --dry-run
+npx @alexmelges/agentci --dry-run
 
 # Show full LLM responses
-npx agentci --verbose
+npx @alexmelges/agentci --verbose
 
 # Output as JSON (for CI parsing)
-npx agentci --format json
+npx @alexmelges/agentci --format json
 
 # Output as Markdown (for PR comments)
-npx agentci --format markdown
+npx @alexmelges/agentci --format markdown
 ```
 
 ## Output Formats
@@ -394,7 +394,7 @@ jobs:
         with:
           node-version: 20
       - run: npm ci
-      - run: npx agentci
+      - run: npx @alexmelges/agentci
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 ```
