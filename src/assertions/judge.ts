@@ -18,22 +18,46 @@ interface JudgeResponse {
   reasoning: string;
 }
 
-const JUDGE_MODEL = process.env.AGENTCI_JUDGE_MODEL || "gpt-4o-mini";
+const JUDGE_MODEL = process.env.AGENTCI_JUDGE_MODEL || "";
+const JUDGE_PROVIDER = process.env.AGENTCI_JUDGE_PROVIDER || ""; // "openai" | "anthropic" | auto-detect
 
-async function callJudge(systemPrompt: string, userPrompt: string): Promise<JudgeResponse> {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
-    return { passed: false, reasoning: "OPENAI_API_KEY not set (required for LLM judge assertions)" };
+type JudgeBackend = "openai" | "anthropic";
+
+function detectJudgeBackend(): { backend: JudgeBackend; model: string } | { error: string } {
+  const provider = JUDGE_PROVIDER.toLowerCase();
+
+  // Explicit provider selection
+  if (provider === "anthropic") {
+    const key = process.env.ANTHROPIC_API_KEY;
+    if (!key) return { error: "AGENTCI_JUDGE_PROVIDER=anthropic but ANTHROPIC_API_KEY not set" };
+    return { backend: "anthropic", model: JUDGE_MODEL || "claude-sonnet-4-20250514" };
+  }
+  if (provider === "openai") {
+    const key = process.env.OPENAI_API_KEY;
+    if (!key) return { error: "AGENTCI_JUDGE_PROVIDER=openai but OPENAI_API_KEY not set" };
+    return { backend: "openai", model: JUDGE_MODEL || "gpt-4o-mini" };
   }
 
+  // Auto-detect: prefer OpenAI (cheaper), fall back to Anthropic
+  if (process.env.OPENAI_API_KEY) {
+    return { backend: "openai", model: JUDGE_MODEL || "gpt-4o-mini" };
+  }
+  if (process.env.ANTHROPIC_API_KEY) {
+    return { backend: "anthropic", model: JUDGE_MODEL || "claude-sonnet-4-20250514" };
+  }
+
+  return { error: "No API key found for judge. Set OPENAI_API_KEY or ANTHROPIC_API_KEY." };
+}
+
+async function callJudgeOpenAI(systemPrompt: string, userPrompt: string, model: string): Promise<JudgeResponse> {
   const resp = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
+      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
     },
     body: JSON.stringify({
-      model: JUDGE_MODEL,
+      model,
       temperature: 0,
       max_tokens: 300,
       response_format: { type: "json_object" },
@@ -46,14 +70,45 @@ async function callJudge(systemPrompt: string, userPrompt: string): Promise<Judg
 
   if (!resp.ok) {
     const text = await resp.text();
-    return { passed: false, reasoning: `Judge API error: ${resp.status} ${text.slice(0, 200)}` };
+    return { passed: false, reasoning: `Judge API error (OpenAI): ${resp.status} ${text.slice(0, 200)}` };
   }
 
   const data = (await resp.json()) as { choices: Array<{ message: { content: string } }> };
-  const content = data.choices[0]?.message?.content || "{}";
+  return parseJudgeResponse(data.choices[0]?.message?.content || "{}");
+}
 
+async function callJudgeAnthropic(systemPrompt: string, userPrompt: string, model: string): Promise<JudgeResponse> {
+  const resp = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": process.env.ANTHROPIC_API_KEY!,
+      "anthropic-version": "2023-06-01",
+    },
+    body: JSON.stringify({
+      model,
+      max_tokens: 300,
+      system: systemPrompt + "\n\nYou MUST respond with valid JSON only: {\"pass\": true/false, \"reasoning\": \"...\"}",
+      messages: [{ role: "user", content: userPrompt }],
+    }),
+  });
+
+  if (!resp.ok) {
+    const text = await resp.text();
+    return { passed: false, reasoning: `Judge API error (Anthropic): ${resp.status} ${text.slice(0, 200)}` };
+  }
+
+  const data = (await resp.json()) as { content: Array<{ type: string; text?: string }> };
+  const text = data.content.find((b) => b.type === "text")?.text || "{}";
+  return parseJudgeResponse(text);
+}
+
+function parseJudgeResponse(content: string): JudgeResponse {
   try {
-    const parsed = JSON.parse(content) as { pass?: boolean; passed?: boolean; reasoning?: string; reason?: string };
+    // Extract JSON from potential markdown code blocks
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    const jsonStr = jsonMatch ? jsonMatch[0] : content;
+    const parsed = JSON.parse(jsonStr) as { pass?: boolean; passed?: boolean; reasoning?: string; reason?: string };
     return {
       passed: !!(parsed.pass ?? parsed.passed),
       reasoning: (parsed.reasoning ?? parsed.reason ?? "No reasoning provided").slice(0, 500),
@@ -61,6 +116,18 @@ async function callJudge(systemPrompt: string, userPrompt: string): Promise<Judg
   } catch {
     return { passed: false, reasoning: `Failed to parse judge response: ${content.slice(0, 200)}` };
   }
+}
+
+async function callJudge(systemPrompt: string, userPrompt: string): Promise<JudgeResponse> {
+  const config = detectJudgeBackend();
+  if ("error" in config) {
+    return { passed: false, reasoning: config.error };
+  }
+
+  if (config.backend === "anthropic") {
+    return callJudgeAnthropic(systemPrompt, userPrompt, config.model);
+  }
+  return callJudgeOpenAI(systemPrompt, userPrompt, config.model);
 }
 
 /**

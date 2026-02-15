@@ -211,7 +211,9 @@ assertions:
 ```
 
 **Configuration:**
-- Judge model: set `AGENTCI_JUDGE_MODEL` env var (default: `gpt-4o-mini`)
+- **Provider auto-detection:** Uses OpenAI if `OPENAI_API_KEY` is set, falls back to Anthropic if `ANTHROPIC_API_KEY` is set
+- Force a specific provider: `AGENTCI_JUDGE_PROVIDER=anthropic` (or `openai`)
+- Custom judge model: `AGENTCI_JUDGE_MODEL=claude-sonnet-4-20250514` (defaults: `gpt-4o-mini` for OpenAI, `claude-sonnet-4-20250514` for Anthropic)
 - Judge responses include reasoning for debuggability
 - Each judge assertion makes one additional API call
 

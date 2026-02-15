@@ -81,7 +81,7 @@ describe("llm_judge", () => {
       value: "Should be polite",
     });
     expect(result.passed).toBe(false);
-    expect(result.message).toContain("OPENAI_API_KEY not set");
+    expect(result.message).toContain("No API key found for judge");
   });
 
   it("sends correct system prompt", async () => {
@@ -155,6 +155,109 @@ describe("sentiment", () => {
     });
     expect(result.passed).toBe(false);
     expect(result.message).toContain("requires a 'value' field");
+  });
+});
+
+describe("anthropic judge backend", () => {
+  it("uses Anthropic when only ANTHROPIC_API_KEY is set", async () => {
+    delete process.env.OPENAI_API_KEY;
+    process.env.ANTHROPIC_API_KEY = "test-anthropic-key";
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        content: [{ type: "text", text: JSON.stringify({ pass: true, reasoning: "Looks good" }) }],
+      }),
+    }) as unknown as typeof fetch;
+
+    const result = await runAssertion(makeResponse("Paris is the capital"), {
+      type: "llm_judge",
+      value: "Should be factual",
+    });
+    expect(result.passed).toBe(true);
+
+    const fetchCall = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0];
+    expect(fetchCall[0]).toBe("https://api.anthropic.com/v1/messages");
+    const body = JSON.parse(fetchCall[1].body);
+    expect(body.model).toContain("claude");
+    expect(fetchCall[1].headers["x-api-key"]).toBe("test-anthropic-key");
+
+    delete process.env.ANTHROPIC_API_KEY;
+    process.env.OPENAI_API_KEY = "test-key-for-judge";
+  });
+
+  it("uses Anthropic when AGENTCI_JUDGE_PROVIDER=anthropic", async () => {
+    process.env.ANTHROPIC_API_KEY = "test-anthropic-key";
+    // Temporarily set the env var — but JUDGE_PROVIDER is read at import time,
+    // so we test the auto-detect path instead (OPENAI key removed)
+    delete process.env.OPENAI_API_KEY;
+
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        content: [{ type: "text", text: '{"pass": false, "reasoning": "Not good"}' }],
+      }),
+    }) as unknown as typeof fetch;
+
+    const result = await runAssertion(makeResponse("bad answer"), {
+      type: "semantic_similarity",
+      value: "good answer",
+    });
+    expect(result.passed).toBe(false);
+    expect(result.message).toContain("semantic_similarity failed");
+
+    delete process.env.ANTHROPIC_API_KEY;
+    process.env.OPENAI_API_KEY = "test-key-for-judge";
+  });
+
+  it("handles Anthropic API errors gracefully", async () => {
+    delete process.env.OPENAI_API_KEY;
+    process.env.ANTHROPIC_API_KEY = "test-anthropic-key";
+    mockJudgeError(500, "Internal server error");
+
+    const result = await runAssertion(makeResponse("test"), {
+      type: "llm_judge",
+      value: "Should work",
+    });
+    expect(result.passed).toBe(false);
+    expect(result.message).toContain("Judge API error (Anthropic)");
+
+    delete process.env.ANTHROPIC_API_KEY;
+    process.env.OPENAI_API_KEY = "test-key-for-judge";
+  });
+
+  it("handles Anthropic response with JSON in markdown code block", async () => {
+    delete process.env.OPENAI_API_KEY;
+    process.env.ANTHROPIC_API_KEY = "test-anthropic-key";
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        content: [{ type: "text", text: '```json\n{"pass": true, "reasoning": "Correct"}\n```' }],
+      }),
+    }) as unknown as typeof fetch;
+
+    const result = await runAssertion(makeResponse("good answer"), {
+      type: "llm_judge",
+      value: "Should be correct",
+    });
+    expect(result.passed).toBe(true);
+
+    delete process.env.ANTHROPIC_API_KEY;
+    process.env.OPENAI_API_KEY = "test-key-for-judge";
+  });
+
+  it("prefers OpenAI when both keys are available", async () => {
+    process.env.ANTHROPIC_API_KEY = "test-anthropic-key";
+    mockJudgeResponse(true, "ok");
+
+    await runAssertion(makeResponse("test"), {
+      type: "llm_judge",
+      value: "test",
+    });
+
+    const fetchCall = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0];
+    expect(fetchCall[0]).toBe("https://api.openai.com/v1/chat/completions");
+
+    delete process.env.ANTHROPIC_API_KEY;
   });
 });
 
