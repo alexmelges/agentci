@@ -22,6 +22,7 @@ export interface Assertion {
   name?: string;
   contains?: Record<string, unknown>;
   schema?: Record<string, unknown>;
+  flags?: string;
 }
 
 export interface AssertionResult {

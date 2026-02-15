@@ -21,6 +21,7 @@ export interface ProviderRequest {
 export interface ProviderResponse {
   content: string;
   tool_calls: ToolCall[];
+  model?: string;
   usage?: {
     prompt_tokens: number;
     completion_tokens: number;
