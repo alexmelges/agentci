@@ -15,6 +15,10 @@ export interface TestCase {
   base_url?: string;
   tools?: ToolDefinition[];
   assertions: Assertion[];
+  // HTTP provider options
+  headers?: Record<string, string>;
+  request_template?: Record<string, unknown>;
+  response_path?: string;
 }
 
 export interface Defaults {
@@ -23,6 +27,10 @@ export interface Defaults {
   temperature?: number;
   max_tokens?: number;
   base_url?: string;
+  // HTTP provider options
+  headers?: Record<string, string>;
+  request_template?: Record<string, unknown>;
+  response_path?: string;
 }
 
 export interface AgentCIConfig {
@@ -65,7 +73,7 @@ export function validateConfig(raw: unknown): AgentCIConfig {
     throw new Error("defaults.model is required and must be a string");
   }
 
-  const validProviders = ["openai", "anthropic"];
+  const validProviders = ["openai", "anthropic", "http"];
   if (!validProviders.includes(defaults.provider)) {
     throw new Error(
       `Invalid provider "${defaults.provider}". Must be one of: ${validProviders.join(", ")}`
@@ -118,6 +126,9 @@ export function validateConfig(raw: unknown): AgentCIConfig {
         base_url: test.base_url as string | undefined,
         tools: test.tools as ToolDefinition[] | undefined,
         assertions,
+        headers: test.headers as Record<string, string> | undefined,
+        request_template: test.request_template as Record<string, unknown> | undefined,
+        response_path: test.response_path as string | undefined,
       };
     }
   );
@@ -130,6 +141,9 @@ export function validateConfig(raw: unknown): AgentCIConfig {
       temperature: defaults.temperature as number | undefined,
       max_tokens: defaults.max_tokens as number | undefined,
       base_url: defaults.base_url as string | undefined,
+      headers: defaults.headers as Record<string, string> | undefined,
+      request_template: defaults.request_template as Record<string, unknown> | undefined,
+      response_path: defaults.response_path as string | undefined,
     },
     tests,
   };

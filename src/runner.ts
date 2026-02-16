@@ -6,6 +6,7 @@ import type {
 } from "./providers/types.js";
 import { createOpenAIProvider } from "./providers/openai.js";
 import { createAnthropicProvider } from "./providers/anthropic.js";
+import { createHttpProvider } from "./providers/http.js";
 import { runAssertion, type Assertion, type AssertionResult } from "./assertions/index.js";
 
 export interface TestAssertionResult {
@@ -33,7 +34,12 @@ export interface RunResult {
 function getProvider(
   providerName: string,
   baseUrl?: string,
-  apiKey?: string
+  apiKey?: string,
+  httpOptions?: {
+    headers?: Record<string, string>;
+    requestTemplate?: Record<string, unknown>;
+    responsePath?: string;
+  }
 ): Provider {
   switch (providerName) {
     case "openai":
@@ -43,6 +49,17 @@ function getProvider(
       });
     case "anthropic":
       return createAnthropicProvider({ apiKey });
+    case "http": {
+      if (!baseUrl) {
+        throw new Error("HTTP provider requires base_url");
+      }
+      return createHttpProvider({
+        baseURL: baseUrl,
+        headers: httpOptions?.headers,
+        requestTemplate: httpOptions?.requestTemplate,
+        responsePath: httpOptions?.responsePath,
+      });
+    }
     default:
       throw new Error(`Unknown provider: ${providerName}`);
   }
@@ -60,7 +77,15 @@ export async function runTest(
   const baseUrl = test.base_url || config.defaults.base_url;
 
   try {
-    const provider = options?.providerOverride ?? getProvider(providerName, baseUrl);
+    const headers = test.headers ?? config.defaults.headers;
+    const requestTemplate = test.request_template ?? config.defaults.request_template;
+    const responsePath = test.response_path ?? config.defaults.response_path;
+
+    const provider = options?.providerOverride ?? getProvider(providerName, baseUrl, undefined, {
+      headers,
+      requestTemplate,
+      responsePath,
+    });
 
     const request: ProviderRequest = {
       model,
