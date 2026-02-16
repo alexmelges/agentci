@@ -66,7 +66,7 @@ version: 1
 
 # Default settings applied to all tests
 defaults:
-  provider: openai          # "openai" or "anthropic"
+  provider: openai          # "openai", "anthropic", or "http"
   model: gpt-4o-mini        # model name
   temperature: 0            # 0-2, lower = more deterministic
   max_tokens: 500           # max response tokens
@@ -276,6 +276,36 @@ defaults:
   provider: openai
   model: my-model
   base_url: https://my-proxy.example.com/v1
+```
+
+### HTTP (Any Endpoint)
+
+Test any HTTP API — custom agent backends, FastAPI endpoints, webhooks:
+
+```yaml
+defaults:
+  provider: http
+  model: my-agent
+  base_url: http://localhost:8000/api/chat
+  headers:
+    Authorization: "Bearer my-token"
+  response_path: data.reply.text  # dot-notation into response JSON
+```
+
+Advanced: custom request body with template interpolation:
+
+```yaml
+tests:
+  - name: "custom body format"
+    prompt: "Hello"
+    request_template:
+      messages:
+        - role: user
+          content: "{{prompt}}"
+      model: "{{model}}"
+    assertions:
+      - type: contains
+        value: "hello"
 ```
 
 ## CLI Reference
