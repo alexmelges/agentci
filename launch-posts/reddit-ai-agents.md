@@ -41,6 +41,8 @@ npx @alexmelges/agentci           # run tests
 - GitHub Action included
 - ~30KB, zero config needed for demo
 
+**Why now:** A [recent paper](https://arxiv.org/abs/2602.11988) found that AGENTS.md files only improve agent performance by ~4%, and agents routinely ignore prose instructions. The top HN comment nailed it: "migrate your AGENTS.md instructions to compiler-based deterministic checks." That's exactly what AgentCI does — **AGENTS.md tells agents what to do. AgentCI verifies they actually did it.**
+
 **vs Promptfoo:** AgentCI is deliberately simpler. No datasets, no evals framework, no web UI. Just YAML tests → pass/fail in CI. If you want a full evaluation platform, use Promptfoo. If you want `pytest` for prompts, use AgentCI.
 
 Open source (MIT): https://github.com/alexmelges/agentci
