@@ -126,7 +126,7 @@ export function createHttpProvider(options: HttpProviderOptions): Provider {
         );
       }
 
-      const json = await response.json();
+      const json: any = await response.json();
 
       // Extract content using response_path
       const rawContent = getByPath(json, responsePath);
